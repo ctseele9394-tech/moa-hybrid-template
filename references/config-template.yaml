@@ -1,0 +1,88 @@
+# ============================================================================
+# MoA Hybrid Template — Config Sample for ~/.hermes/config.yaml
+# ============================================================================
+#
+# USAGE:
+#   1. Copy this file: cp references/config-template.yaml ~/.hermes/config.yaml
+#   2. Replace ALL <PLACEHOLDER> values with your actual values
+#   3. NEVER commit the filled-in version to a public git repo
+#
+# ============================================================================
+
+# ---- Providers (add yours here) --------------------------------------------
+
+providers:
+  # oMLX — local inference server (Nous Research)
+  # API key can be empty IF oMLX is configured with "skip API key validation"
+  omlx:
+    name: "oMLX Local"
+    base_url: "http://127.0.0.1:8000/v1"
+    api_key: "<YOUR_OMLX_KEY_OR_LEAVE_BLANK>"
+    api_mode: "chat_completions"
+    skip_auth: true   # ← Set true if oMLX validation is disabled
+
+  # Cloud aggregator — replace with YOUR provider
+  # Examples: openrouter, anthropic, openai, deepseek, minimax-cn
+  your-cloud-provider:
+    name: "<YOUR_PROVIDER_DISPLAY_NAME>"
+    base_url: "https://api.your-provider.com/v1"
+    api_key: "<YOUR_CLOUD_API_KEY>"   # ← REPLACE before use, never commit
+    api_mode: "chat_completions"
+    default_model: "<YOUR_CLOUD_MODEL_ID>"
+
+# ---- MoA Presets ----------------------------------------------------------
+
+moa:
+  save_traces: true
+  trace_dir: "~/.hermes/cache/moa_traces/"
+
+  # DEFAULT preset — used by /moa <query>
+  presets:
+    default:
+      enabled: true
+      reference_models:
+        - provider: omlx
+          model: "<YOUR_LOCAL_4BIT_MODEL>"   # e.g. Qwopus3.6-27B-v2-MLX-4bit
+      aggregator:
+        provider: "<YOUR_CLOUD_PROVIDER>"     # e.g. your-cloud-provider
+        model: "<YOUR_CLOUD_MODEL>"           # e.g. MiniMax-M3
+      reference_temperature: 0.6
+      aggregator_temperature: 0.3
+      max_tokens: 4096
+      reference_max_tokens: 500    # ← conservative_500 recipe (n=20 validated, -9%)
+      fanout: user_turn             # Halves cache reads
+
+    # BALANCED preset — local-only fallback if cloud costs spike
+    balanced:
+      enabled: true
+      reference_models:
+        - provider: omlx
+          model: "<YOUR_LOCAL_4BIT_MODEL>"
+      aggregator:
+        provider: omlx              # ← Same as advisor (local-only)
+        model: "<YOUR_LOCAL_4BIT_MODEL>"
+      reference_temperature: 0.6
+      aggregator_temperature: 0.3
+      max_tokens: 4096
+      reference_max_tokens: 400
+      fanout: user_turn
+
+  default_preset: "default"   # Which preset /moa uses by default
+
+# ---- Agent settings (usually unchanged) -----------------------------------
+
+agent:
+  max_turns: 8
+
+# ============================================================================
+# SAFETY CHECKLIST — Before you commit this file anywhere
+# ============================================================================
+#
+# [ ] All <PLACEHOLDER> strings replaced?  grep "<" ~/.hermes/config.yaml
+# [ ] No real api_key values left?           grep -i "sk-" ~/.hermes/config.yaml
+# [ ] No real base_url with auth tokens?     grep -E "://.*:.*@" ~/.hermes/config.yaml
+#
+# If any check fails: do NOT commit. The api_key leaks would expose your
+# cloud account and could rack up charges from a malicious actor.
+#
+# ============================================================================
